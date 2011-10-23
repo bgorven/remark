@@ -1,0 +1,143 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+
+//---------------------------------------------------------------------------
+// Base properties
+//---------------------------------------------------------------------------
+
+description = 'The OverZealous Creations Remark library.'
+sourceCompatibility = 1.5
+
+//---------------------------------------------------------------------------
+// Dependencies
+//---------------------------------------------------------------------------
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.6.+'
+	compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.+'
+	compile group: 'commons-cli', name: 'commons-cli', version: '1.+'
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+	testCompile group: 'commons-io', name: 'commons-io', version: '2.+'
+}
+
+//---------------------------------------------------------------------------
+// Override default tasks
+//---------------------------------------------------------------------------
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.overzealous.remark.Main'
+    }
+}
+
+javadoc {
+	configure(options) {
+		options.links = [ 'http://download.oracle.com/javase/6/docs/api/', 'http://jsoup.org/apidocs/' ]
+		options.author = true
+		options.bottom = '<div style="font-size:.75em; font-style:italic; text-align:center;">&copy; 2011 <a href="http://www.overzealous.com/">OverZealous Creations, LLC</a> - <a href="https://bitbucket.org/OverZealous/remark">BitBucket Repository</a></div>'
+	}
+}
+
+
+
+//---------------------------------------------------------------------------
+// Custom tasks
+//---------------------------------------------------------------------------
+
+task runRemark(dependsOn: 'classes', description: "Runs the command-line Remark class") << {
+	def exit = javaexec{
+		main = 'com.overzealous.remark.Main'
+		classpath = sourceSets.main.runtimeClasspath
+		//args ''
+		//systemProperty 'simple.message', 'Hello '
+	}
+	if(exit.exitValue != 0) {
+		//println exit
+		println "exit value: ${exit.exitValue}"
+	}
+}
+
+task bumpVersion(description: 'Bumps the app Version for release.') << {
+	//noinspection GroovyAssignabilityCheck
+	def components = version.split('\\.').collect { Integer.parseInt(it.replace('-SNAPSHOT', ''))}
+	components[2] += 1
+	def nextIntegrationVersion = components.join('.')+"-SNAPSHOT"
+	println "Bumping $version to $nextIntegrationVersion"
+	def newProps = file("gradle.properties").text.replace(version, nextIntegrationVersion)
+	file("gradle.properties").text = newProps
+}
+
+task intellijSync(description: 'Add gradle dependecies to IntelliJ project library') << {
+
+	// Add source and javadoc artifacts
+	configurations.each{
+		it.dependencies.each { dep ->
+			['jar':null,'source':'sources','javadoc':'javadoc'].each{arType, arClassifier ->
+				dep.artifact {
+					name = dep.name
+					extension = 'jar'
+					type = arType
+					classifier = arClassifier
+				}
+			}
+		}
+	}
+
+    final def librariesDir = new File(".idea${File.separator}libraries")
+    librariesDir.mkdirs()
+
+    final def userHomeGradle = project.gradle.gradleUserHomeDir
+	if(!userHomeGradle) {
+    	println "Set the USER_HOME_GRADLE variable to '$userHomeGradle.path'"
+	}
+
+    def makeJarList = { path ->
+		//noinspection GroovyAssignabilityCheck
+		path.split(File.pathSeparator).collect {
+            it.replaceAll userHomeGradle.path, "\\\$USER_HOME_GRADLE\\\$"
+        }
+    }
+    final def compileJars = makeJarList(configurations.compile.asPath)
+    final def testJars = makeJarList(configurations.testCompile.asPath) - compileJars
+
+    def createLibrary = { String fileName, String libraryName, jars ->
+		final def gradleLibXml = new File(librariesDir, fileName)
+        gradleLibXml.write """
+<component name="libraryTable">
+<library name="$libraryName"/>
+</component>"""
+        final def xmlRoot = new XmlParser().parse(gradleLibXml)
+        final def classesNode = xmlRoot.library[0].appendNode('CLASSES')
+		final def sourcesNode = xmlRoot.library[0].appendNode('SOURCES')
+		final def javadocNode = xmlRoot.library[0].appendNode('JAVADOC')
+
+        println "Creating $libraryName";
+
+        jars.each { jar ->
+			def type;
+			if(jar ==~ /.*-sources\.jar$/) {
+				type = 'sources';
+				sourcesNode.appendNode('root', [url: "jar://$jar!/"])
+			} else if(jar ==~ /.*-javadoc\.jar$/) {
+				type = 'javadoc';
+				javadocNode.appendNode('root', [url: "jar://$jar!/"])
+			} else {
+				type = 'class';
+            	classesNode.appendNode('root', [url: "jar://$jar!/"])
+			}
+			def jarShortName = jar.replace('$USER_HOME_GRADLE$/cache/', '')
+			println " - Added $type jar $jarShortName"
+
+        }
+
+        def writer = new StringWriter()
+        new XmlNodePrinter(new PrintWriter(writer)).print(xmlRoot)
+        gradleLibXml.write writer.toString()
+        println "File '${gradleLibXml.path}' updated"
+    }
+    createLibrary 'Gradle_Libraries.xml', 'Gradle Libraries', compileJars
+    createLibrary 'Gradle_Test_Libraries.xml', 'Gradle Test Libraries', testJars
+}
