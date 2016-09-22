@@ -2,6 +2,24 @@
 
 **Remark** is a library for taking (X)HTML input and outputting clean [Markdown][], [Markdown Extra][], or [MultiMarkdown][] compatible text.  The purpose of this conversion is mainly to allow for the use of client-side HTML GUI editors while retaining safe, mobile-device editable markdown text behind the scenes.  It is recommended that the markdown text is stored, to reduce XSS attacks by code injection.
 
+## Including Remark in your Project
+
+Go to https://jitpack.io/#bgorven/remark for full instructions. For gradle add:
+
+```
+	allprojects {
+		repositories {
+			maven { url "https://jitpack.io" }
+		}
+	}
+
+	dependencies {
+	        compile 'com.github.bgorven:remark:-SNAPSHOT'
+	}
+
+
+```
+
 ## Example Usage Scenario
 
  * The user logs in from their desktop.
