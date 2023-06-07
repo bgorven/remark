@@ -42,3 +42,9 @@ javadoc {
         options.bottom = '<div style="font-size:.75em; font-style:italic; text-align:center;">&copy; 2011 <a href="http://www.overzealous.com/">OverZealous Creations, LLC</a> - <a href="https://bitbucket.org/OverZealous/remark">BitBucket Repository</a></div>'
     }
 }
+
+publishing {
+    publications {
+        maven(MavenPublication)
+    }
+}
