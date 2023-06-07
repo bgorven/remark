@@ -44,6 +44,15 @@ javadoc {
 }
 
 publishing {
+    repositories {
+        maven {
+            url nexusUrl
+            credentials {
+                username nexusUploadUsername
+                password nexusUploadPassword
+            }
+        }
+    }
     publications {
         maven(MavenPublication)
     }
