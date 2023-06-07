@@ -19,20 +19,10 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'org.jsoup', name: 'jsoup', version: '1.+'
-    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.+'
-    implementation group: 'commons-cli', name: 'commons-cli', version: '1.2'
-    testImplementation group: 'junit', name: 'junit', version: '4.+'
-    testImplementation group: 'commons-io', name: 'commons-io', version: '2.+'
-}
-
-//---------------------------------------------------------------------------
-// Override default tasks
-//---------------------------------------------------------------------------
-jar {
-    manifest {
-        attributes 'Main-Class': 'com.overzealous.remark.Main'
-    }
+    implementation group: 'org.jsoup', name: 'jsoup', version: '[1.0,)'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '[3.0,)'
+    testImplementation group: 'junit', name: 'junit', version: '[4.0,)'
+    testImplementation group: 'commons-io', name: 'commons-io', version: '[2.0,)'
 }
 
 javadoc {
@@ -41,6 +31,11 @@ javadoc {
         options.author = true
         options.bottom = '<div style="font-size:.75em; font-style:italic; text-align:center;">&copy; 2011 <a href="http://www.overzealous.com/">OverZealous Creations, LLC</a> - <a href="https://bitbucket.org/OverZealous/remark">BitBucket Repository</a></div>'
     }
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
 }
 
 publishing {
@@ -54,6 +49,8 @@ publishing {
         }
     }
     publications {
-        maven(MavenPublication)
+        mavenJava(MavenPublication) {
+            from components.java
+        }
     }
 }
